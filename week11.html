@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Week 11 – Enhanced Binary Slum Detection Pipeline</title>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css"
+  />
+  <style>
+    :root {
+      --primary-color: #ffffff;
+      --secondary-color: #f8f9fa;
+      --accent-color: #0066cc;
+      --text-color: #2c3e50;
+      --earth-green: #28a745;
+      --earth-brown: #8d6e63;
+      --space-blue: #3f51b5;
+      --card-bg: rgba(248, 249, 250, 0.8);
+      --progress-bg: rgba(40, 167, 69, 0.15);
+      --code-bg: rgba(248, 249, 250, 0.9);
+      --highlight-orange: #fd7e14;
+      --warning-red: #dc3545;
+      --colombo-blue: #1e40af;
+      --validation-green: #198754;
+      --border-color: rgba(0, 0, 0, 0.1);
+      --shadow-light: rgba(0, 0, 0, 0.08);
+      --shadow-medium: rgba(0, 0, 0, 0.12);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background-color: #f5f7fa;
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+    
+    .navbar {
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 1rem 2rem;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      box-shadow: 0 2px 20px var(--shadow-light);
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .logo {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: var(--accent-color);
+      text-decoration: none;
+    }
+    
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+    
+    .nav-links a {
+      color: var(--text-color);
+      text-decoration: none;
+      font-size: 1.1rem;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+    
+    .nav-links a:hover {
+      color: var(--accent-color);
+    }
+    
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .dropbtn {
+      background-color: transparent;
+      color: var(--text-color);
+      padding: 0;
+      font-size: 1.1rem;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(10px);
+      min-width: 120px;
+      max-height: 200px;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px var(--shadow-medium);
+      z-index: 101;
+      border-radius: 8px;
+      margin-top: 10px;
+      border: 1px solid var(--border-color);
+    }
+    
+    .dropdown-content a {
+      color: var(--text-color);
+      padding: 8px 12px;
+      text-decoration: none;
+      display: block;
+      transition: background-color 0.3s;
+      font-size: 0.9rem;
+    }
+    
+    .dropdown-content a:hover {
+      background-color: var(--secondary-color);
+    }
+    
+    .dropdown:hover .dropdown-content,
+    .dropdown:focus-within .dropdown-content,
+    .dropdown-content:hover,
+    .dropdown-content:focus {
+      display: block;
+    }
+    .dropbtn:focus {
+      outline: none;
+    }
+</script>
+<script>
+// Make dropdown open on click as well as hover
+document.addEventListener('DOMContentLoaded', function() {
+  var dropbtn = document.querySelector('.dropbtn');
+  var dropdown = document.querySelector('.dropdown');
+  var dropdownContent = document.querySelector('.dropdown-content');
+  if (dropbtn && dropdown && dropdownContent) {
+    dropbtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      // Toggle dropdown
+      if (dropdownContent.style.display === 'block') {
+        dropdownContent.style.display = '';
+      } else {
+        dropdownContent.style.display = 'block';
+      }
+    });
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!dropdown.contains(e.target)) {
+        dropdownContent.style.display = '';
+      }
+    });
+  }
+});
+</script>
+    
+    .page-header {
+      padding: 8rem 0 3rem 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 249, 250, 0.8));
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .page-header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: var(--text-color);
+      text-shadow: 0 2px 4px var(--shadow-light);
+      font-weight: 700;
+    }
+    
+    .page-header p {
+      font-size: 1.1rem;
+      max-width: 800px;
+      margin: 0 auto;
+      color: var(--text-color);
+      opacity: 0.8;
+    }
+    
+    .progress-bar {
+      background-color: var(--progress-bg);
+      border-radius: 8px;
+      padding: 12px 24px;
+      margin: 20px auto;
+      max-width: 800px;
+      text-align: center;
+      font-weight: 600;
+      border: 1px solid rgba(40, 167, 69, 0.2);
+      color: var(--validation-green);
+    }
+    
+    .content-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    .topic-card {
+      background-color: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 20px var(--shadow-light);
+      transition: transform 0.3s, box-shadow 0.3s;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border-color);
+    }
+    
+    .topic-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 32px var(--shadow-medium);
+    }
+    
+    .topic-card h3 {
+      color: var(--accent-color);
+      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .topic-card h3 i {
+      color: var(--earth-green);
+    }
+    
+    .topic-card h4 {
+      color: var(--accent-color);
+      margin: 1.5rem 0 1rem 0;
+      font-size: 1.2rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .topic-card h4 i {
+      color: var(--earth-green);
+    }
+    
+    .topic-card p {
+      margin-bottom: 1rem;
+      color: var(--text-color);
+      opacity: 0.9;
+    }
+    
+    .topic-card ul {
+      list-style-type: none;
+      margin-bottom: 1.5rem;
+    }
+    
+    .topic-card ul li {
+      margin-bottom: 0.8rem;
+      padding-left: 1.5rem;
+      position: relative;
+      color: var(--text-color);
+      opacity: 0.9;
+    }
+    
+    .topic-card ul li:before {
+      content: "•";
+      color: var(--accent-color);
+      font-weight: bold;
+      position: absolute;
+      left: 0;
+    }
+    
+    .github-card {
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(20, 20, 20, 0.9));
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    .github-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .github-header i {
+      font-size: 1.5rem;
+      color: #ffffff;
+    }
+
+    .github-header h5 {
+      color: var(--accent-color);
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .github-link {
+      color: var(--accent-color);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.3s;
+    }
+
+    .github-link:hover {
+      color: #ffffff;
+    }
+    
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    
+    .metric-card {
+      background-color: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 4px 16px var(--shadow-light);
+      border: 1px solid var(--border-color);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .metric-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px var(--shadow-medium);
+    }
+    
+    .metric-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--accent-color);
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+    
+    .metric-label {
+      font-size: 0.9rem;
+      color: var(--text-color);
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .tech-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      margin: 1.5rem 0;
+    }
+    
+    .tech-tag {
+      background: linear-gradient(135deg, var(--earth-green), #1e7e34);
+      color: white;
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: transform 0.3s;
+    }
+    
+    .tech-tag:hover {
+      transform: scale(1.05);
+    }
+    
+    .code-snippet {
+      background-color: var(--code-bg);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      border: 1px solid var(--border-color);
+      font-family: 'Courier New', monospace;
+      overflow-x: auto;
+      border-left: 4px solid var(--accent-color);
+    }
+    
+    .results-highlight {
+      background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(255, 255, 255, 0.9));
+      border-left: 4px solid var(--earth-green);
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      border-radius: 8px;
+      border: 1px solid rgba(40, 167, 69, 0.2);
+    }
+    
+    .results-highlight h5 {
+      color: var(--earth-green);
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .results-highlight h5 i {
+      color: var(--earth-green);
+    }
+    
+    .challenge-box {
+      background-color: rgba(253, 126, 20, 0.1);
+      border-left: 4px solid var(--highlight-orange);
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      border-radius: 8px;
+      border: 1px solid rgba(253, 126, 20, 0.2);
+    }
+    
+    .challenge-box h5 {
+      color: var(--highlight-orange);
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .challenge-box h5 i {
+      color: var(--highlight-orange);
+    }
+    
+    .next-steps {
+      background-color: rgba(63, 81, 181, 0.05);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-top: 2rem;
+      box-shadow: 0 4px 16px var(--shadow-light);
+      border: 1px solid rgba(63, 81, 181, 0.1);
+    }
+    
+    .next-steps h3 {
+      color: var(--accent-color);
+      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .next-steps h3 i {
+      color: var(--accent-color);
+    }
+    
+    .next-steps ul {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      list-style-type: none;
+    }
+    
+    .next-steps ul li {
+      background-color: rgba(255, 255, 255, 0.7);
+      padding: 1rem;
+      border-radius: 8px;
+      position: relative;
+      padding-left: 2rem;
+      border: 1px solid var(--border-color);
+      transition: background-color 0.3s;
+    }
+    
+    .next-steps ul li:hover {
+      background-color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .next-steps ul li:before {
+      content: "→";
+      color: var(--earth-green);
+      font-weight: bold;
+      position: absolute;
+      left: 0.8rem;
+    }
+    
+    footer {
+      background-color: var(--primary-color);
+      padding: 2rem;
+      text-align: center;
+      margin-top: 3rem;
+      border-top: 1px solid var(--border-color);
+      box-shadow: 0 -4px 20px var(--shadow-light);
+    }
+    
+    .social-links {
+      margin-bottom: 1rem;
+    }
+    
+    .social-links a {
+      display: inline-block;
+      margin: 0 0.5rem;
+      color: var(--text-color);
+      font-size: 1.5rem;
+      transition: color 0.3s;
+    }
+    
+    .social-links a:hover {
+      color: var(--accent-color);
+    }
+    
+    .footer-text {
+      font-size: 0.9rem;
+      color: var(--text-color);
+      opacity: 0.6;
+    }
+    
+    @media (max-width: 768px) {
+      .navbar {
+        padding: 1rem;
+      }
+      
+      .nav-links {
+        gap: 1rem;
+      }
+      
+      .page-header h1 {
+        font-size: 2rem;
+      }
+      
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .next-steps ul {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="index.html" class="logo">E/20/425</a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <div class="dropdown">
+        <button class="dropbtn">
+          Weekly Progress <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="week1.html">Week 1</a>
+          <a href="week2.html">Week 2</a>
+          <a href="week3.html">Week 3</a>
+          <a href="week4.html">Week 4</a>
+          <a href="week5.html">Week 5</a>
+          <a href="week6.html">Week 6</a>
+          <a href="week7.html">Week 7</a>
+          <a href="week8.html">Week 8</a>
+          <a href="week9.html">Week 9</a>
+          <a href="week10.html">Week 10</a>
+          <a href="week11.html">Week 11</a>
+          <a href="week12.html">Week 12</a>
+          <a href="week13.html">Week 13</a>
+          <a href="week14.html">Week 14</a>
+        </div>
+      </div>
+      <a href="contact.html">Contact</a>
+    </div>
+  </nav>
+  
+  <header class="page-header">
+    <h1 style="font-size:3.2rem; font-weight:800; color:#222; margin-bottom:1.2rem; letter-spacing:0.5px;">Week 11: Enhanced Binary Slum Detection Pipeline</h1>
+  </header>
+
+  <div class="content-container">
+    <!-- Main Content Card -->
+    <div class="topic-card">
+      <div style="font-size:2.2rem; font-weight:800; color:#222; margin-bottom:0.7rem; letter-spacing:0.5px; text-align:center;">Week 11: Enhanced Binary Slum Detection Pipeline</div>
+      <div style="background: linear-gradient(90deg, #0066cc 0%, #3399ff 100%); color: #fff; border-radius: 10px 10px 0 0; padding: 1rem 1.5rem; margin-bottom:0; font-size:1.15rem; font-weight:600; letter-spacing:0.5px;">
+        This Week's Focus
+      </div>
+      <div style="background: #f8f9fa; border-radius: 0 0 10px 10px; padding: 1.1rem 1.5rem 1.2rem 1.5rem; margin-bottom:1.2rem; font-size:1.07rem; color:#222; font-weight:500; border-bottom:1px solid #e3f2fd;">
+        Evaluated UNet-based binary segmentation models for slum detection on the Mumbai dataset, with emphasis on understanding the impact of class imbalance and dataset quality. Analyzed model limitations and set the stage for future improvements and transfer learning strategies.
+      </div>
+      <h3 style="margin-top:0.5rem; color:#0066cc;"><i class="fas fa-chart-line"></i> Insights & Challenges in Binary Slum Detection</h3>
+      <p>This week, a UNet-based binary segmentation pipeline was developed and evaluated for slum detection from satellite imagery. Despite implementing advanced augmentation, multiple loss functions, and post-processing, the models struggled with low IoU and misleadingly high F1 scores due to severe class imbalance and dataset challenges. The results highlight the need for improved data quality, better handling of class imbalance, and more context-aware modeling to achieve meaningful slum segmentation.</p>
+      <h4><i class="fas fa-bullseye"></i> Key Objectives</h4>
+      <ul>
+        <li><strong>Develop UNet-based binary segmentation model</strong> for slum vs non-slum classification</li>
+        <li><strong>Implement and compare multiple loss functions</strong> (BCE+Dice, Focal, Tversky)</li>
+        <li><strong>Apply advanced data augmentation</strong> for improved generalization</li>
+        <li><strong>Integrate post-processing</strong> using morphological operations</li>
+        <li><strong>Evaluate model</strong> with IoU, Dice, F1, Precision, Recall, AUC metrics</li>
+      </ul>
+      <h4><i class="fas fa-code"></i> Technology Stack</h4>
+      <div class="tech-stack">
+        <span class="tech-tag">Python</span>
+        <span class="tech-tag">PyTorch</span>
+        <span class="tech-tag">Albumentations</span>
+        <span class="tech-tag">OpenCV</span>
+        <span class="tech-tag">Matplotlib</span>
+        <span class="tech-tag">NumPy</span>
+        <span class="tech-tag">Pandas</span>
+        <span class="tech-tag">segmentation_models_pytorch</span>
+        <span class="tech-tag">scikit-learn</span>
+        <span class="tech-tag">Seaborn</span>
+      </div>
+    </div>
+    
+    <!-- GitHub Repository Card -->
+    <div class="github-card">
+      <div class="github-header">
+        <i class="fab fa-github"></i>
+        <h5>Repository</h5>
+      </div>
+      <p><strong>Source:</strong> <a href="#" class="github-link" target="_blank">binary_slum_detection.py</a></p>
+      <p>This repository contains the complete code for the enhanced binary slum detection pipeline, including model definition, training loop, evaluation, visualization, and experiment runner.</p>
+    </div>
+
+    <!-- Preprocessing Results -->
+    <div class="topic-card">
+      <h3><i class="fas fa-wrench"></i> Preprocessing Results</h3>
+      <figure style="width:100%; max-width: 900px; margin: 0 auto;">
+        <img src="images/after preprocessing.jpg" alt="Preprocessing output example" style="width:100%; border-radius: 8px; border: 1px solid #eee;">
+        <figcaption style="margin-top: 0.5rem; font-size: 0.95rem; color: #555;">
+          Example of a dataset image after preprocessing. Class masks have been converted to binary format for slum/non-slum segmentation. <br>
+          <span style="font-size:0.95em; color:#888;">Class distribution: 31.89% slum pixels, 68.11% non-slum (imbalance ratio 2.14:1).</span>
+        </figcaption>
+      </figure>
+    </div>
+    
+
+    <!-- Training History Visualizations -->
+    <div class="topic-card">
+      <h3><i class="fas fa-chart-area"></i> Training History Visualizations</h3>
+      <div style="display: flex; flex-direction: column; gap: 2.5rem; align-items: center;">
+        <figure style="width:100%; max-width: 1100px; margin: 0 auto;">
+          <img src="images/unet_resnet34_bce_dice_history.png" alt="Training history for UNet ResNet34 BCE+Dice" style="width:100%; border-radius: 8px; border: 1px solid #eee;">
+          <figcaption style="margin-top: 0.5rem; font-size: 0.95rem; color: #555;">Training and validation loss, IoU, and Dice for UNet (ResNet34, BCE+Dice). Shows steady improvement and good generalization.</figcaption>
+        </figure>
+        <figure style="width:100%; max-width: 1100px; margin: 0 auto;">
+          <img src="images/unet_resnet34_focal_history.png" alt="Training history for UNet ResNet34 Focal" style="width:100%; border-radius: 8px; border: 1px solid #eee;">
+          <figcaption style="margin-top: 0.5rem; font-size: 0.95rem; color: #555;">Training and validation curves for UNet (ResNet34, Focal Loss). Focal loss helps address class imbalance, with validation metrics tracking closely.</figcaption>
+        </figure>
+        <figure style="width:100%; max-width: 1100px; margin: 0 auto;">
+          <img src="images/unet_efficientnet-b0_bce_dice_history.png" alt="Training history for UNet EfficientNet-B0 BCE+Dice" style="width:100%; border-radius: 8px; border: 1px solid #eee;">
+          <figcaption style="margin-top: 0.5rem; font-size: 0.95rem; color: #555;">Training and validation metrics for UNet (EfficientNet-B0, BCE+Dice). Model converges well with stable validation performance.</figcaption>
+        </figure>
+        <figure style="width:100%; max-width: 1100px; margin: 0 auto;">
+          <img src="images/unet_efficientnet-b0_focal_history.png" alt="Training history for UNet EfficientNet-B0 Focal" style="width:100%; border-radius: 8px; border: 1px solid #eee;">
+          <figcaption style="margin-top: 0.5rem; font-size: 0.95rem; color: #555;">Training and validation curves for UNet (EfficientNet-B0, Focal Loss). Focal loss again provides robust results for imbalanced data.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <!-- Model Comparison Visualization -->
+    <div class="topic-card">
+      <h3><i class="fas fa-balance-scale"></i> Model Comparison</h3>
+      <figure style="width:100%; max-width: 900px; margin: 0 auto;">
+        <img src="images/model_comparison.png" alt="Model comparison bar and scatter plots" style="width:100%; border-radius: 8px; border: 1px solid #eee;">
+        <figcaption style="margin-top: 0.5rem; font-size: 0.95rem; color: #555;">
+          <strong>Summary Table:</strong><br>
+          <div style="overflow-x:auto;">
+            <table style="width:100%; margin: 1rem 0; border-collapse: separate; border-spacing: 0; font-size: 1rem; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.04); border-radius: 10px; overflow: hidden;">
+              <thead>
+                <tr style="background: linear-gradient(90deg, #e3f2fd 0%, #f8f9fa 100%); color: #1e40af;">
+                  <th style="padding:10px 6px; font-weight:600;">Model</th>
+                  <th style="padding:10px 6px; font-weight:600;">Encoder</th>
+                  <th style="padding:10px 6px; font-weight:600;">Loss</th>
+                  <th style="padding:10px 6px; font-weight:600;">Val IoU</th>
+                  <th style="padding:10px 6px; font-weight:600;">Test IoU</th>
+                  <th style="padding:10px 6px; font-weight:600;">Test Dice</th>
+                  <th style="padding:10px 6px; font-weight:600;">Test F1</th>
+                  <th style="padding:10px 6px; font-weight:600;">Precision</th>
+                  <th style="padding:10px 6px; font-weight:600;">Recall</th>
+                  <th style="padding:10px 6px; font-weight:600;">Pixel Acc</th>
+                  <th style="padding:10px 6px; font-weight:600;">AUC-ROC</th>
+                  <th style="padding:10px 6px; font-weight:600;">AUC-PR</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="background: #f8f9fa;">
+                  <td style="padding:8px 6px;">unet_resnet34_bce_dice</td>
+                  <td style="padding:8px 6px;">resnet34</td>
+                  <td style="padding:8px 6px;">bce_dice</td>
+                  <td style="padding:8px 6px;">0.890</td>
+                  <td style="padding:8px 6px;">0.288</td>
+                  <td style="padding:8px 6px;">0.447</td>
+                  <td style="padding:8px 6px;">0.990</td>
+                  <td style="padding:8px 6px;">0.987</td>
+                  <td style="padding:8px 6px;">0.994</td>
+                  <td style="padding:8px 6px;">0.994</td>
+                  <td style="padding:8px 6px;">0.9995</td>
+                  <td style="padding:8px 6px;">0.9991</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 6px; background: #f4f8fb;">unet_resnet34_focal</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">resnet34</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">focal</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.881</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.288</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.447</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.990</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.986</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.995</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.994</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.9996</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.9993</td>
+                </tr>
+                <tr style="background: #f8f9fa;">
+                  <td style="padding:8px 6px;">unet_efficientnet-b0_bce_dice</td>
+                  <td style="padding:8px 6px;">efficientnet-b0</td>
+                  <td style="padding:8px 6px;">bce_dice</td>
+                  <td style="padding:8px 6px;">0.895</td>
+                  <td style="padding:8px 6px;">0.288</td>
+                  <td style="padding:8px 6px;">0.447</td>
+                  <td style="padding:8px 6px;">0.994</td>
+                  <td style="padding:8px 6px;">0.995</td>
+                  <td style="padding:8px 6px;">0.994</td>
+                  <td style="padding:8px 6px;">0.997</td>
+                  <td style="padding:8px 6px;">0.9996</td>
+                  <td style="padding:8px 6px;">0.9994</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 6px; background: #f4f8fb;">unet_efficientnet-b0_focal</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">efficientnet-b0</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">focal</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.895</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.288</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.447</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.915</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.848</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.995</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.947</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.9986</td>
+                  <td style="padding:8px 6px; background: #f4f8fb;">0.9979</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <span>All models achieved similar IoU and Dice on the test set, with BCE+Dice loss slightly outperforming in F1 and pixel accuracy. AUC-ROC and AUC-PR are very high for all models, indicating strong discrimination. EfficientNet-B0 with BCE+Dice achieved the best F1 and pixel accuracy.</span>
+        </figcaption>
+      </figure>
+    </div>
+
+    <!-- Model Performance Issues & Insights -->
+    <div class="topic-card" style="background-color: rgba(220,53,69,0.12); border-left: 6px solid #dc3545; border-radius: 12px;">
+      <h3 style="color:#dc3545;"><i class="fas fa-bug"></i> Model Performance Issues & Insights</h3>
+      <ul>
+        <li><strong>Low IoU Score:</strong> All models have low IoU (0.288), meaning poor localization of slum regions.</li>
+        <li><strong>High F1 but Misleading:</strong> High F1 scores (0.99) reflect correct background prediction, not true slum detection.</li>
+        <li><strong>Imbalanced Dataset:</strong> Non-slum class dominates, causing overconfident metrics (AUC-ROC, AUC-PR near 1.0).</li>
+        <li><strong>Focal Loss Issues:</strong> Focal loss with EfficientNet-B0 drops F1 and precision, possibly due to aggressive weighting or lack of tuning.</li>
+        <li><strong>Uniform IoU:</strong> Identical IoU across models may signal bottlenecks in preprocessing or evaluation.</li>
+        <li><strong>Overfitting to Background:</strong> Models may predict mostly background, missing slum regions.</li>
+        <li><strong>Label Quality:</strong> Noisy or ambiguous slum boundaries confuse the model and lower IoU.</li>
+        <li><strong>Resolution/Input Scaling:</strong> Downscaled images lose fine details, hurting segmentation of small slum areas.</li>
+        <li><strong>Lack of Contextual Modeling:</strong> UNet may miss long-range context; EfficientNet may need deeper tuning for segmentation.</li>
+      </ul>
+    </div>
+    
+    <!-- Technical Implementation -->
+    
+    <!-- Results Highlight -->
+    
+    <!-- Challenges Section -->
+    <div class="challenge-box">
+      <h5><i class="fas fa-exclamation-triangle"></i> Challenges & Solutions</h5>
+      <ul>
+        <li><strong>Class imbalance:</strong> Addressed using Focal, Tversky, and weighted BCE+Dice losses</li>
+        <li><strong>Overfitting:</strong> Mitigated with advanced augmentation and regularization</li>
+        <li><strong>Small object detection:</strong> Improved via post-processing and morphological filtering</li>
+      </ul>
+    </div>
+    
+    <!-- Next Steps -->
+    <div class="next-steps">
+      <h3><i class="fas fa-arrow-right"></i> Next Steps</h3>
+      <ul>
+        <li>Extend to multi-class segmentation for more detailed urban mapping</li>
+        <li>Integrate additional encoders and compare performance</li>
+        <li>Experiment with ensemble models and test-time augmentation</li>
+        <li>Deploy model for real-world slum detection and mapping</li>
+      </ul>
+    </div>
+  </div>
+  
+  <footer>
+    <div class="social-links">
+      <a href="#"><i class="fab fa-github"></i></a>
+      <a href="#"><i class="fab fa-linkedin"></i></a>
+      <a href="#"><i class="fab fa-twitter"></i></a>
+    </div>
+  </footer>
+</body>
+</html>
